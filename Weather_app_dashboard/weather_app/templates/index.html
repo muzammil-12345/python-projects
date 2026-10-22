@@ -1,44 +1,347 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>Weather Dashboard</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+
+	{% set d = weather.description.lower() if weather else '' %}
+	{% if not weather %}{% set theme = 'dusk' %}
+	{% elif 'thunder' in d %}{% set theme = 'storm' %}
+	{% elif 'rain' in d or 'drizzle' in d %}{% set theme = 'rain' %}
+	{% elif 'snow' in d or 'sleet' in d %}{% set theme = 'snow' %}
+	{% elif 'mist' in d or 'fog' in d or 'haze' in d or 'smoke' in d or 'dust' in d %}{% set theme = 'mist' %}
+	{% elif 'cloud' in d or 'overcast' in d %}{% set theme = 'clouds' %}
+	{% else %}{% set theme = 'clear' %}{% endif %}
+
 	<style>
+		:root {
+			--ink: #f7f8fc;
+			--ink-soft: rgba(247, 248, 252, 0.74);
+			--glass: rgba(255, 255, 255, 0.13);
+			--edge: rgba(255, 255, 255, 0.3);
+			--sky-top: #1b1f4b;
+			--sky-mid: #5b3f8f;
+			--sky-bottom: #f08a5d;
+		}
+		body.clear  { --sky-top: #1746c4; --sky-mid: #4f9cf0; --sky-bottom: #fcd34d; }
+		body.clouds { --sky-top: #2b3a55; --sky-mid: #5d708c; --sky-bottom: #aab8c9; }
+		body.rain   { --sky-top: #0f2530; --sky-mid: #264b5c; --sky-bottom: #5c8394; }
+		body.storm  { --sky-top: #130f2a; --sky-mid: #35285e; --sky-bottom: #6a5a9c; }
+		body.snow   { --sky-top: #5a7194; --sky-mid: #9db2cc; --sky-bottom: #e6eef7; }
+		body.mist   { --sky-top: #46505c; --sky-mid: #7c8793; --sky-bottom: #c3c9cf; }
+
+		* { box-sizing: border-box; }
+
 		body {
-			font-family: Arial, sans-serif;
 			margin: 0;
-			padding: 0;
-			text-align: center;
-			background: #f0f8ff;
+			min-height: 100vh;
+			font-family: "Bricolage Grotesque", "Segoe UI", Arial, sans-serif;
+			color: var(--ink);
+			background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 55%, var(--sky-bottom) 100%);
+			background-attachment: fixed;
+			overflow-x: hidden;
 		}
-		.container {
-			padding: 20px;
+
+		.sky {
+			position: fixed;
+			inset: 0;
+			pointer-events: none;
+			overflow: hidden;
 		}
-		.weather-card {
-			margin: 20px auto;
-			padding: 20px;
-			max-width: 400px;
-			border: 1px solid #ddd;
-			border-radius: 10px;
-			background: white;
-			box-shadow:0 4px 8px rgba(0,0,0,0.1);
+
+		.sky .glow {
+			position: absolute;
+			right: -8vmin;
+			bottom: -18vmin;
+			width: 60vmin;
+			height: 60vmin;
+			border-radius: 50%;
+			background: radial-gradient(circle, rgba(255, 244, 200, 0.95) 0%, rgba(255, 214, 120, 0.45) 40%, transparent 70%);
+		}
+		body.clouds .glow, body.rain .glow, body.storm .glow, body.mist .glow, body.snow .glow { opacity: 0.12; }
+		body.dusk .glow { background: radial-gradient(circle, rgba(255, 190, 140, 0.9) 0%, rgba(240, 120, 90, 0.4) 42%, transparent 70%); }
+
+		.sky .cloud {
+			position: absolute;
+			width: 46vmin;
+			height: 14vmin;
+			border-radius: 50%;
+			background: rgba(255, 255, 255, 0.16);
+			filter: blur(24px);
+			animation: drift 70s linear infinite;
+		}
+		.sky .cloud:nth-child(2) { top: 14%; left: -50vmin; }
+		.sky .cloud:nth-child(3) { top: 42%; left: -50vmin; width: 60vmin; animation-duration: 95s; animation-delay: -40s; }
+		.sky .cloud:nth-child(4) { top: 70%; left: -50vmin; animation-duration: 120s; animation-delay: -80s; }
+		body.clear .cloud { opacity: 0.45; }
+		body.clouds .cloud, body.mist .cloud { background: rgba(255, 255, 255, 0.24); }
+
+		@keyframes drift {
+			from { transform: translateX(0); }
+			to   { transform: translateX(calc(100vw + 110vmin)); }
+		}
+
+		.sky .fall { display: none; position: absolute; inset: 0; }
+		body.rain .fall, body.storm .fall {
+			display: block;
+			background-image: repeating-linear-gradient(
+				100deg,
+				transparent 0 14px,
+				rgba(200, 225, 240, 0.35) 14px 15px,
+				transparent 15px 34px
+			);
+			background-size: 220px 220px;
+			animation: rainfall 0.7s linear infinite;
+		}
+		body.snow .fall {
+			display: block;
+			background-image:
+				radial-gradient(circle, rgba(255, 255, 255, 0.9) 0 2px, transparent 3px),
+				radial-gradient(circle, rgba(255, 255, 255, 0.7) 0 1.5px, transparent 2.5px);
+			background-size: 120px 120px, 80px 80px;
+			background-position: 0 0, 40px 30px;
+			animation: snowfall 9s linear infinite;
+		}
+
+		@keyframes rainfall { to { background-position: -40px 220px; } }
+		@keyframes snowfall { to { background-position: 20px 120px, 60px 110px; } }
+
+		main {
+			position: relative;
+			max-width: 760px;
+			min-height: 100vh;
+			margin: 0 auto;
+			padding: 40px 24px 56px;
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			gap: 28px;
+		}
+
+		.brand {
+			margin: 0;
+			font-size: 1rem;
+			font-weight: 600;
+			letter-spacing: 0.01em;
+			color: var(--ink-soft);
+		}
+
+		.search {
+			display: flex;
+			gap: 10px;
+			padding: 8px;
+			border: 1px solid var(--edge);
+			border-radius: 999px;
+			background: var(--glass);
+			backdrop-filter: blur(14px);
+			-webkit-backdrop-filter: blur(14px);
+		}
+		.search input {
+			flex: 1;
+			min-width: 0;
+			padding: 12px 20px;
+			border: 0;
+			border-radius: 999px;
+			background: transparent;
+			font: inherit;
+			font-size: 1.05rem;
+			color: var(--ink);
+		}
+		.search input::placeholder { color: var(--ink-soft); }
+		.search input:focus { outline: none; }
+		.search:focus-within { border-color: #fff; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25); }
+		.search button {
+			padding: 12px 26px;
+			border: 0;
+			border-radius: 999px;
+			background: #fff;
+			color: #14182e;
+			font: inherit;
+			font-weight: 600;
+			cursor: pointer;
+			transition: transform 0.15s ease, background 0.15s ease;
+		}
+		.search button:hover { background: #eef1ff; }
+		.search button:active { transform: scale(0.96); }
+		.search button:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+
+		.error {
+			margin: 0;
+			padding: 14px 20px;
+			border: 1px solid rgba(255, 170, 170, 0.6);
+			border-radius: 16px;
+			background: rgba(120, 20, 30, 0.45);
+			backdrop-filter: blur(10px);
+			-webkit-backdrop-filter: blur(10px);
+		}
+
+		.prompt {
+			margin: 0;
+			font-size: clamp(2.6rem, 9vw, 5.2rem);
+			font-weight: 800;
+			line-height: 1;
+			letter-spacing: -0.03em;
+		}
+		.prompt-sub {
+			margin: 14px 0 0;
+			max-width: 34ch;
+			font-size: 1.1rem;
+			color: var(--ink-soft);
+		}
+
+		.city {
+			margin: 0;
+			font-size: clamp(1.4rem, 4vw, 2rem);
+			font-weight: 600;
+		}
+		.temp {
+			margin: 0;
+			font-size: clamp(7rem, 30vw, 14rem);
+			font-weight: 800;
+			line-height: 0.85;
+			letter-spacing: -0.06em;
+			font-variant-numeric: tabular-nums;
+		}
+		.temp small {
+			font-size: 0.28em;
+			font-weight: 600;
+			letter-spacing: 0;
+			vertical-align: top;
+			margin-left: 0.08em;
+			color: var(--ink-soft);
+		}
+		.desc {
+			margin: 6px 0 0;
+			font-size: clamp(1.3rem, 3.5vw, 1.8rem);
+			text-transform: capitalize;
+			color: var(--ink-soft);
+		}
+
+		.stats {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 14px;
+		}
+		.stat {
+			padding: 20px 22px;
+			border: 1px solid var(--edge);
+			border-radius: 20px;
+			background: var(--glass);
+			backdrop-filter: blur(14px);
+			-webkit-backdrop-filter: blur(14px);
+		}
+		.stat h3 {
+			margin: 0 0 6px;
+			font-size: 0.95rem;
+			font-weight: 600;
+			color: var(--ink-soft);
+		}
+		.stat .value {
+			margin: 0 0 14px;
+			font-size: 2rem;
+			font-weight: 800;
+			letter-spacing: -0.02em;
+		}
+		.stat .value span { font-size: 1rem; font-weight: 600; color: var(--ink-soft); margin-left: 4px; }
+		.meter {
+			height: 8px;
+			border-radius: 999px;
+			background: rgba(255, 255, 255, 0.2);
+			overflow: hidden;
+		}
+		.meter i {
+			display: block;
+			height: 100%;
+			border-radius: 999px;
+			background: #fff;
+		}
+		.stat .scale {
+			display: flex;
+			justify-content: space-between;
+			margin-top: 8px;
+			font-size: 0.8rem;
+			color: var(--ink-soft);
+		}
+
+		@media (max-width: 520px) {
+			.stats { grid-template-columns: 1fr; }
+			.search button { padding: 12px 20px; }
+		}
+
+		@media (prefers-reduced-motion: reduce) {
+			.sky .cloud, .sky .fall { animation: none; }
 		}
 	</style>
 </head>
-<body>
-	<div class="container">
-		<h1>Weather Dashboard</h1>
-		<form method="POST">
-			<input type="text" name="city" placeholder="Enter City" required>
-			<button type="submit">Get Weather</button>
-		</form>
-		{% if weather %}
-		<div class="weather-card">
-			<h2>{{ weather.city }}</h2>
-			<p><strong>Temperature:</strong> {{ weather.temperature }}°C</p>
-			<p><strong>Description:</strong> {{ weather.description }}</p>
-            <p><strong>Humidity:</strong> {{ weather.humidity }}%</p>
-            <p><strong>Wind Speed:</strong> {{ weather.wind_speed }} m/s</p>
-		</div>
-		{% endif %}
+<body class="{{ theme }}">
+	<div class="sky" aria-hidden="true">
+		<div class="glow"></div>
+		<div class="cloud"></div>
+		<div class="cloud"></div>
+		<div class="cloud"></div>
+		<div class="cloud"></div>
+		<div class="fall"></div>
 	</div>
+
+	<main>
+		<p class="brand">Weather Dashboard</p>
+
+		<form class="search" method="POST">
+			<input type="text" name="city" placeholder="Search a city, like Bannu" autocomplete="off" required {% if not weather %}autofocus{% endif %}>
+			<button type="submit">Check weather</button>
+		</form>
+
+		{% if error %}
+		<p class="error" role="alert">{{ error }}</p>
+		{% endif %}
+
+		{% if weather %}
+		<section aria-live="polite">
+			<h2 class="city">{{ weather.city }}</h2>
+			<p class="temp"><span id="temp" data-value="{{ weather.temperature }}">{{ weather.temperature | round | int }}</span><small>°C</small></p>
+			<p class="desc">{{ weather.description }}</p>
+		</section>
+
+		<div class="stats">
+			<div class="stat">
+				<h3>Humidity</h3>
+				<p class="value">{{ weather.humidity }}<span>%</span></p>
+				<div class="meter"><i style="width: {{ weather.humidity }}%"></i></div>
+				<div class="scale"><span>Dry</span><span>Humid</span></div>
+			</div>
+			<div class="stat">
+				<h3>Wind speed</h3>
+				<p class="value">{{ weather.wind_speed }}<span>m/s</span></p>
+				<div class="meter"><i style="width: {{ [weather.wind_speed * 5, 100] | min }}%"></i></div>
+				<div class="scale"><span>Calm</span><span>Strong</span></div>
+			</div>
+		</div>
+		{% elif not error %}
+		<section>
+			<h2 class="prompt">What's the sky doing today?</h2>
+			<p class="prompt-sub">Search any city and the background changes to match its weather.</p>
+		</section>
+		{% endif %}
+	</main>
+
+	<script>
+		var el = document.getElementById("temp");
+		if (el && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+			var target = parseFloat(el.dataset.value);
+			var start = null;
+			function step(ts) {
+				if (start === null) start = ts;
+				var p = Math.min((ts - start) / 900, 1);
+				var eased = 1 - Math.pow(1 - p, 3);
+				el.textContent = Math.round(target * eased);
+				if (p < 1) requestAnimationFrame(step);
+			}
+			requestAnimationFrame(step);
+		}
+	</script>
 </body>
+</html>
